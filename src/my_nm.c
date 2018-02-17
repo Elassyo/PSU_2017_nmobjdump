@@ -2,99 +2,89 @@
 ** EPITECH PROJECT, 2018
 ** PSU_2017_nmobjdump
 ** File description:
-** my_nm main function
+** my_nm implementation
 */
 
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
-#include <elf.h>
 #include "nmobjdump.h"
 
-static const nm_sect2type_map_t SECTION2TYPE_MAP[] = {
-	{ ".bss", 'b' },
-	{ ".data", 'd' },
-	{ ".dynamic", 'd' },
-	{ ".eh_frame", 'r' },
-	{ ".fini", 't' },
-	{ ".got", 'd' },
-	{ ".init", 't' },
-	{ ".rdata", 'r' },
-	{ ".rodata", 'r' },
-	{ ".sbss", 's' },
-	{ ".scommon", 'c' },
-	{ ".sdata", 'g' },
-	{ ".tbss", 'b' },
-	{ ".tdata", 'd' },
-	{ ".text", 't' },
-	{ 0, 0 }
-};
-
-static char my_nm_get_symbol_type(elf_t *elf, Elf64_Sym *sym)
-{
-	Elf64_Shdr *shdr = elf_section_get(elf,	sym->st_shndx);
-	const char *section;
-
-	if (sym->st_name == 0 ||
-		ELF64_ST_TYPE(sym->st_info) == STT_SECTION ||
-		ELF64_ST_TYPE(sym->st_info) == STT_FILE)
-		return (0);
-	if (ELF64_ST_BIND(sym->st_info) == STB_WEAK)
-		return (sym->st_value ? 'W' : 'w');
-	if (sym->st_value == 0)
-		return ('U');
-	section = elf_strtab_get(elf, true, shdr->sh_name);
-	for (const nm_sect2type_map_t *m = SECTION2TYPE_MAP; m->section; m++) {
-		if (strncmp(m->section, section, strlen(m->section)) == 0)
-			return (ELF64_ST_BIND(sym->st_info) == STB_GLOBAL ?
-				toupper(m->type) : m->type);
-	}
-	return ('?');
-}
-
-static void my_nm_print_symtab(elf_t *elf,
-	Elf64_Sym *symtab_data, uint64_t length)
+static void my_nm_print_symtab(const Elf64_Ehdr *elf,
+	const Elf64_Sym *symtab, uint64_t len)
 {
 	char buf[17];
 	char type;
-	elf_sym_t *symtab = elf_symtab(elf, symtab_data, length);
+	elf_symbols_t *symbols = elf_symbols_read_symtab(elf, symtab, len);
 
-	qsort(symtab, length, sizeof(*symtab), elf_symtab_sort);
-	for (uint64_t i = 0; i < length; i++) {
-		if (symtab[i].sym->st_value)
-			snprintf(buf, 17, "%016lx", symtab[i].sym->st_value);
+	qsort(symbols, len, sizeof(*symbols), elf_symbols_sorter);
+	for (uint64_t i = 0; i < len; i++) {
+		type = elf_symbols_get_type(elf, symbols[i].sym);
+		if (type != 'U' && type != 'w')
+			snprintf(buf, 17, "%016lx", symbols[i].sym->st_value);
 		else
 			buf[0] = 0;
-		type = my_nm_get_symbol_type(elf, symtab[i].sym);
 		if (type == 0)
 			continue;
-		printf("%16s %c %s\n", buf, type, symtab[i].name);
+		printf("%16s %c %s\n", buf, type, symbols[i].name);
 	}
-	free(symtab);
+	free(symbols);
 }
 
-static int my_nm(const char *path)
+static int my_nm_elf(file_t *file)
 {
-	elf_t elf;
-	Elf64_Shdr *symtab_shdr;
+	const Elf64_Ehdr *elf = file->f_data;
+	const Elf64_Shdr *symtab_shdr;
 
-	if (elf_open("my_nm", path, &elf))
-		return (84);
-	if (elf.buf->e_shoff == 0 || elf.buf->e_shoff > elf.size) {
-		fprintf(stderr, "my_nm: %s: no section table in ELF\n", path);
+	if (elf->e_shoff == 0 || elf->e_shoff > file->f_size ||
+		elf->e_shnum == 0) {
+		fprintf(stderr, "my_nm: %s: no sections\n", file->f_path);
 		return (84);
 	}
-	symtab_shdr = elf_section_find(&elf, ".symtab");
-	if (symtab_shdr && symtab_shdr->sh_offset < elf.size &&
+	symtab_shdr = elf_section_find(elf, ".symtab");
+	if (symtab_shdr && symtab_shdr->sh_offset < file->f_size &&
 		symtab_shdr->sh_size != 0 && symtab_shdr->sh_entsize != 0)
-		my_nm_print_symtab(&elf,
-			((void *)elf.buf + symtab_shdr->sh_offset),
+		my_nm_print_symtab(elf, (void *)elf + symtab_shdr->sh_offset,
 			symtab_shdr->sh_size / symtab_shdr->sh_entsize);
 	else
-		fprintf(stderr, "my_nm: %s: no symbols\n", path);
-	elf_close(&elf);
+		fprintf(stderr, "my_nm: %s: no symbols\n", file->f_path);
 	return (0);
+}
+
+static int my_nm_file(file_t *file, bool print_path)
+{
+	int ret = 0;
+	ar_file_t *ar_file;
+
+	if (elf_file_check(file)) {
+		if (print_path)
+			printf("\n%s:\n", file->f_path);
+		ret = my_nm_elf(file);
+	} else if (ar_file_check(file)) {
+		if (print_path)
+			printf("\n%s:\n", file->f_path);
+		ar_file = ar_file_iterate(file, NULL);
+		while (ar_file) {
+			ret |= my_nm_file(&ar_file->af_file, true);
+			ar_file = ar_file_iterate(file, ar_file);
+		}
+	} else {
+		fprintf(stderr, "my_nm: %s: File format not recognized\n",
+			file->f_path);
+	}
+	return (ret);
+}
+
+static int my_nm(const char *path, bool print_path)
+{
+	int ret;
+	file_t *file = fs_open("my_nm", path);
+
+	if (!file)
+		return (84);
+	ret = my_nm_file(file, print_path);
+	fs_close(file);
+	return (ret);
 }
 
 int main(int argc, char const *const *argv)
@@ -102,14 +92,12 @@ int main(int argc, char const *const *argv)
 	int ret = 0;
 
 	if (argc == 1)
-		ret = my_nm("a.out");
+		ret = my_nm("a.out", false);
 	else if (argc == 2)
-		ret = my_nm(argv[1]);
+		ret = my_nm(argv[1], false);
 	else {
-		for (int i = 1; i < argc; i++) {
-			printf("\n%s:\n", argv[i]);
-			ret |= my_nm(argv[i]);
-		}
+		for (int i = 1; i < argc; i++)
+			ret |= my_nm(argv[i], true);
 	}
 	return (ret);
 }

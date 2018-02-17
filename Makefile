@@ -19,10 +19,14 @@ NAME_OBJDUMP	=	my_objdump
 MAINSRC_NM	=	my_nm.c
 MAINSRC_OBJDUMP	=	my_objdump.c
 
-SRC		=	elf_file.c					\
+SRC		=	fs.c						\
+			ar_file.c					\
+			ar_ext.c					\
+			ar_utils.c					\
+			elf_file.c					\
 			elf_section.c					\
-			elf_strtab.c					\
-			elf_symtab.c
+			elf_strings.c					\
+			elf_symbols.c
 
 #
 # HEADERS
