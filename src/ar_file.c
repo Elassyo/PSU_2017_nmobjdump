@@ -9,9 +9,9 @@
 #include <string.h>
 #include "nmobjdump.h"
 
-static ar_file_t *ar_file_open(file_t *file, size_t off)
+static ar_file_t *ar_file_open(file_t const *file, size_t off)
 {
-	const ar_fhdr_t *fhdr = file->f_data + off;
+	ar_fhdr_t const *fhdr = file->f_data + off;
 	ar_file_t *res = malloc(sizeof(*res));
 
 	if (res) {
@@ -31,7 +31,7 @@ static void ar_file_close(ar_file_t *ar_file)
 	free(ar_file);
 }
 
-bool ar_file_check(file_t *file)
+bool ar_file_check(file_t const *file)
 {
 	const ar_ahdr_t *ar = file->f_data;
 
@@ -40,7 +40,7 @@ bool ar_file_check(file_t *file)
 	return (memcmp(ar->a_sig, AR_SIG, AR_SIG_SIZE) == 0);
 }
 
-ar_file_t *ar_file_iterate(file_t *file, ar_file_t *prev)
+ar_file_t *ar_file_iterate(file_t const *file, ar_file_t *prev)
 {
 	size_t off = MY_ALIGN(!prev ? sizeof(ar_ahdr_t) :
 		prev->af_off + sizeof(ar_fhdr_t) + prev->af_file.f_size, 2);

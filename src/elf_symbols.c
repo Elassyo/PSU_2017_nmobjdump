@@ -12,7 +12,7 @@
 #include <elf.h>
 #include "nmobjdump.h"
 
-static const nm_sect2type_map_t SECTION2TYPE_MAP[] = {
+static nm_sect2type_map_t const SECTION2TYPE_MAP[] = {
 	{ ".bss", 'b' },
 	{ ".data", 'd' },
 	{ ".dynamic", 'd' },
@@ -31,8 +31,8 @@ static const nm_sect2type_map_t SECTION2TYPE_MAP[] = {
 	{ 0, 0 }
 };
 
-elf_symbols_t *elf_symbols_read_symtab(const Elf64_Ehdr *elf,
-	const Elf64_Sym *symtab, uint64_t len)
+elf_symbols_t *elf_symbols_read_symtab(Elf64_Ehdr const *elf,
+	Elf64_Sym const *symtab, uint64_t len)
 {
 	elf_symbols_t *symbols = malloc(len * sizeof(*symtab));
 
@@ -46,39 +46,34 @@ elf_symbols_t *elf_symbols_read_symtab(const Elf64_Ehdr *elf,
 	return (symbols);
 }
 
-char elf_symbols_get_type(const Elf64_Ehdr *elf, const Elf64_Sym *sym)
+char elf_symbols_get_type(Elf64_Ehdr const *elf, Elf64_Sym const *sym)
 {
-	char c;
-	const char *section;
-	const Elf64_Shdr *shdr = elf_section_get(elf, sym->st_shndx);
+	char const *section;
+	Elf64_Shdr const *shdr = elf_section_get(elf, sym->st_shndx);
 
 	if (sym->st_name == 0 || ELF64_ST_TYPE(sym->st_info) == STT_FILE)
 		return (0);
-	if (ELF64_ST_BIND(sym->st_info) == STB_WEAK) {
-		c = sym->st_value ? 'W' : 'w';
-		return (c);
-	}
-	if (sym->st_shndx == SHN_UNDEF)
-		return ('U');
+	if (ELF64_ST_BIND(sym->st_info) == STB_WEAK)
+		return (sym->st_value ? 'W' : 'w');
 	if (sym->st_shndx == SHN_ABS)
 		return ('A');
 	if (sym->st_shndx == SHN_COMMON)
 		return ('C');
+	if (sym->st_shndx == SHN_UNDEF || !shdr)
+		return ('U');
 	section = elf_strtab_get(elf, true, shdr->sh_name);
-	for (const nm_sect2type_map_t *m = SECTION2TYPE_MAP; m->section; m++) {
-		if (strncmp(m->section, section, strlen(m->section)) == 0) {
-			c = ELF64_ST_BIND(sym->st_info) == STB_GLOBAL ?
-				toupper(m->type) : m->type;
-			return (c);
-		}
+	for (nm_sect2type_map_t const *m = SECTION2TYPE_MAP; m->section; m++) {
+		if (strncmp(m->section, section, strlen(m->section)) == 0)
+			return (ELF64_ST_BIND(sym->st_info) == STB_GLOBAL ?
+				toupper(m->type) : m->type);
 	}
 	return ('?');
 }
 
-int elf_symbols_sorter(const void *a, const void *b)
+int elf_symbols_sorter(void const *a, void const *b)
 {
-	const char *a_name = ((elf_symbols_t *)a)->name;
-	const char *b_name = ((elf_symbols_t *)b)->name;
+	char const *a_name = ((elf_symbols_t *)a)->name;
+	char const *b_name = ((elf_symbols_t *)b)->name;
 
 	while (*a_name && *b_name &&
 		(toupper(*a_name) == toupper(*b_name) ||

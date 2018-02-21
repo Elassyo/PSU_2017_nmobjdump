@@ -7,7 +7,7 @@
 
 #include "nmobjdump.h"
 
-int ar_atoi(const char *str, int len)
+int ar_atoi(char const *str, int len)
 {
 	int res = 0;
 

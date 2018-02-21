@@ -10,8 +10,8 @@
 #include <stdlib.h>
 #include "nmobjdump.h"
 
-static void my_nm_print_symtab(const Elf64_Ehdr *elf,
-	const Elf64_Sym *symtab, uint64_t len)
+static void my_nm_print_symtab(Elf64_Ehdr const *elf,
+	Elf64_Sym const *symtab, uint64_t len)
 {
 	char buf[17];
 	char type;
@@ -31,11 +31,16 @@ static void my_nm_print_symtab(const Elf64_Ehdr *elf,
 	free(symbols);
 }
 
-static int my_nm_elf(file_t *file)
+static int my_nm_elf(file_t const *file)
 {
-	const Elf64_Ehdr *elf = file->f_data;
-	const Elf64_Shdr *symtab_shdr;
+	Elf64_Ehdr const *elf = file->f_data;
+	Elf64_Shdr const *symtab_shdr;
 
+	if (elf->e_ident[EI_CLASS] != ELFCLASS64 ||
+		elf->e_ident[EI_DATA] != ELFDATA2LSB) {
+		fprintf(stderr, "my_nm: %s: Unsupported ELF\n", file->f_path);
+		return (84);
+	}
 	if (elf->e_shoff == 0 || elf->e_shoff > file->f_size ||
 		elf->e_shnum == 0) {
 		fprintf(stderr, "my_nm: %s: no sections\n", file->f_path);
@@ -51,7 +56,7 @@ static int my_nm_elf(file_t *file)
 	return (0);
 }
 
-static int my_nm_file(file_t *file, bool print_path)
+static int my_nm_file(file_t const *file, bool print_path)
 {
 	int ret = 0;
 	ar_file_t *ar_file;
@@ -75,7 +80,7 @@ static int my_nm_file(file_t *file, bool print_path)
 	return (ret);
 }
 
-static int my_nm(const char *path, bool print_path)
+static int my_nm(char const *path, bool print_path)
 {
 	int ret;
 	file_t *file = fs_open("my_nm", path);

@@ -17,13 +17,13 @@
 /* FS */
 
 typedef struct file {
-	const char *f_path;
+	char const *f_path;
 	int f_fd;
 	size_t f_size;
-	const void *f_data;
+	void const *f_data;
 } file_t;
 
-file_t *fs_open(const char *progname, const char *filepath);
+file_t *fs_open(char const *progname, char const *filepath);
 void fs_close(file_t *elf);
 
 /* AR */
@@ -53,30 +53,33 @@ typedef struct ar_file {
 	size_t af_off;
 } ar_file_t;
 
-int ar_atoi(const char *str, int len);
-bool ar_file_check(file_t *file);
-ar_file_t *ar_file_iterate(file_t *file, ar_file_t *prev);
-const char *ar_ext_get_name(file_t *file, const char *identifier);
+int ar_atoi(char const *str, int len);
+bool ar_file_check(file_t const *file);
+ar_file_t *ar_file_iterate(file_t const *file, ar_file_t *prev);
+char const *ar_ext_get_name(file_t const *file, char const *identifier);
 
 /* ELF */
 
 typedef struct elf_symbol {
-	const char *name;
-	const Elf64_Sym *sym;
+	char const *name;
+	Elf64_Sym const *sym;
 } elf_symbols_t;
 
-bool elf_file_check(file_t *file);
+bool elf_file_check(file_t const *file);
+char const *elf_file_format(Elf64_Ehdr const *elf);
+char const *elf_file_target(Elf64_Ehdr const *elf);
+char const *elf_file_architecture(Elf64_Ehdr const *elf);
 
-const Elf64_Shdr *elf_section_find(const Elf64_Ehdr *elf, const char *name);
-const Elf64_Shdr *elf_section_get(const Elf64_Ehdr *elf, Elf64_Section idx);
+Elf64_Shdr const *elf_section_find(Elf64_Ehdr const *elf, char const *name);
+Elf64_Shdr const *elf_section_get(Elf64_Ehdr const *elf, Elf64_Section idx);
 
-const char *elf_strtab_get(const Elf64_Ehdr *elf, bool section_name,
+char const *elf_strtab_get(Elf64_Ehdr const *elf, bool section_name,
 	uint32_t idx);
 
-elf_symbols_t *elf_symbols_read_symtab(const Elf64_Ehdr *elf,
-	const Elf64_Sym *symtab, uint64_t len);
-char elf_symbols_get_type(const Elf64_Ehdr *elf, const Elf64_Sym *sym);
-int elf_symbols_sorter(const void *a, const void *b);
+elf_symbols_t *elf_symbols_read_symtab(Elf64_Ehdr const *elf,
+	Elf64_Sym const *symtab, uint64_t len);
+char elf_symbols_get_type(Elf64_Ehdr const *elf, Elf64_Sym const *sym);
+int elf_symbols_sorter(void const *a, void const *b);
 
 /* NM */
 
@@ -86,5 +89,13 @@ typedef struct nm_sect2type_map {
 } nm_sect2type_map_t;
 
 /* OBJDUMP */
+
+typedef struct objdump_options {
+	bool file_header;
+	bool full_content;
+} objdump_options_t;
+
+void my_objdump_file_header(Elf64_Ehdr const *elf);
+void my_objdump_full_content(Elf64_Ehdr const *elf);
 
 #endif /* !defined (NMOBJDUMP_H_) */

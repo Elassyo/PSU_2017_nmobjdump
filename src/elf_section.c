@@ -8,7 +8,7 @@
 #include <string.h>
 #include "nmobjdump.h"
 
-const Elf64_Shdr *elf_section_find(const Elf64_Ehdr *elf, const char *name)
+Elf64_Shdr const *elf_section_find(Elf64_Ehdr const *elf, char const *name)
 {
 	Elf64_Shdr *shdrtab = (void *)elf + elf->e_shoff;
 
@@ -22,7 +22,7 @@ const Elf64_Shdr *elf_section_find(const Elf64_Ehdr *elf, const char *name)
 	return (NULL);
 }
 
-const Elf64_Shdr *elf_section_get(const Elf64_Ehdr *elf, Elf64_Section idx)
+Elf64_Shdr const *elf_section_get(Elf64_Ehdr const *elf, Elf64_Section idx)
 {
 	Elf64_Shdr *shdrtab = (void *)elf + elf->e_shoff;
 

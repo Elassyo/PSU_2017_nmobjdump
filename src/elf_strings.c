@@ -7,10 +7,10 @@
 
 #include "nmobjdump.h"
 
-const char *elf_strtab_get(const Elf64_Ehdr *elf, bool section_name,
+char const *elf_strtab_get(Elf64_Ehdr const *elf, bool section_name,
 	uint32_t idx)
 {
-	const Elf64_Shdr *strtab_shdr;
+	Elf64_Shdr const *strtab_shdr;
 
 	if (section_name) {
 		if (elf->e_shstrndx == SHN_UNDEF ||

@@ -9,7 +9,7 @@
 #include <string.h>
 #include "nmobjdump.h"
 
-const char *ar_ext_get_name_extensions_file(file_t *file)
+static char const *ar_ext_get_name_extensions_file(file_t const *file)
 {
 	size_t off = sizeof(ar_ahdr_t);
 	const ar_fhdr_t *fhdr;
@@ -23,11 +23,11 @@ const char *ar_ext_get_name_extensions_file(file_t *file)
 	return (NULL);
 }
 
-const char *ar_ext_get_name(file_t *file, const char *identifier)
+char const *ar_ext_get_name(file_t const *file, char const *identifier)
 {
 	char *res;
-	const char *ext;
-	const char *end;
+	char const *ext;
+	char const *end;
 
 	if (identifier[0] == '/') {
 		ext = ar_ext_get_name_extensions_file(file);

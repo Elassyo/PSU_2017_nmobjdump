@@ -14,7 +14,7 @@
 #include <unistd.h>
 #include "nmobjdump.h"
 
-file_t *fs_open(const char *progname, const char *filepath)
+file_t *fs_open(char const *progname, char const *filepath)
 {
 	struct stat s;
 	file_t *res = malloc(sizeof(*res));

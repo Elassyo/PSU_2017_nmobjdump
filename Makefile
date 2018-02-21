@@ -17,7 +17,9 @@ NAME_OBJDUMP	=	my_objdump
 #
 
 MAINSRC_NM	=	my_nm.c
-MAINSRC_OBJDUMP	=	my_objdump.c
+MAINSRC_OBJDUMP	=	my_objdump.c					\
+			my_objdump_file_header.c			\
+			my_objdump_full_content.c
 
 SRC		=	fs.c						\
 			ar_file.c					\
