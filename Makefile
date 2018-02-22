@@ -96,6 +96,10 @@ TESTOBJ		=	$(TESTSRC:.c=.o)
 
 all: $(NAME_NM) $(NAME_OBJDUMP) $(TESTNAME)
 
+nm: $(NAME_NM)
+
+objdump: $(NAME_OBJDUMP)
+
 $(NAME_NM): $(addprefix $(OBJDIR)/, $(OBJ_NM) $(OBJ))
 	$(CC) $^ $(LDFLAGS) -o $@
 
@@ -128,4 +132,4 @@ fclean: clean
 
 re: fclean all
 
-.PHONY:	all tests_run clean fclean re
+.PHONY:	all nm objdump tests_run clean fclean re
