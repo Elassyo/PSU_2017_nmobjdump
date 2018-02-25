@@ -5,7 +5,6 @@
 ** my_nm header
 */
 
-
 #if !defined(MY_NM_H)
 	#define MY_NM_H
 

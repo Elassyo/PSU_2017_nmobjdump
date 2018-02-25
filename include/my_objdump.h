@@ -2,9 +2,8 @@
 ** EPITECH PROJECT, 2018
 ** PSU_2017_nmobjdump
 ** File description:
-** my_nm header
+** my_objdump header
 */
-
 
 #if !defined(MY_OBJDUMP_H)
 	#define MY_OBJDUMP_H
