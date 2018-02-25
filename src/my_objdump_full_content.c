@@ -10,11 +10,22 @@
 #include <string.h>
 #include "my_objdump.h"
 
+static bool is_ignored_section(elf_section_t const *sect)
+{
+	if (strncmp(sect->s_name, ".rel", 4) == 0)
+		return (strcmp(sect->s_name, ".rela.dyn") != 0 &&
+			strcmp(sect->s_name, ".rela.plt") != 0);
+	return (sect->s_type == SHT_NOBITS ||
+		strcmp(sect->s_name, ".symtab") == 0 ||
+		strcmp(sect->s_name, ".strtab") == 0 ||
+		strcmp(sect->s_name, ".shstrtab") == 0);
+}
+
 static int count_hex_digits(unsigned long nbr)
 {
 	int res = 1;
 
-	while (nbr > 16) {
+	while (nbr >= 16) {
 		nbr /= 16;
 		res++;
 	}
@@ -51,11 +62,7 @@ void my_objdump_full_content(elf_t const *elf)
 	puts("");
 	for (unsigned long i = 1; i < elf->e_sectnum; i++) {
 		sect = &elf->e_sections[i];
-		if (sect->s_type == SHT_NOBITS || sect->s_size == 0 ||
-			strncmp(sect->s_name, ".rel", 4) == 0 ||
-			strcmp(sect->s_name, ".symtab") == 0 ||
-			strcmp(sect->s_name, ".strtab") == 0 ||
-			strcmp(sect->s_name, ".shstrtab") == 0)
+		if (sect->s_size == 0 || is_ignored_section(sect))
 			continue;
 		printf("Contents of section %s:\n", sect->s_name);
 		addr_len = MY_MAX(count_hex_digits(sect->s_addr +
