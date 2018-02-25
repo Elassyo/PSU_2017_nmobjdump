@@ -24,6 +24,7 @@ typedef struct elf_section {
 	unsigned long s_flags;
 	size_t s_size;
 	size_t s_entsize;
+	unsigned long s_addr;
 	void const *s_data;
 } elf_section_t;
 

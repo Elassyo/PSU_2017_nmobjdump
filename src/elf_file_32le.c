@@ -10,9 +10,9 @@
 #include <elf.h>
 #include "my_elf.h"
 
-static char const *elf_section_name(file_t const *file, unsigned int idx)
+static char const *elf_section_name(file_t const *file,
+	Elf32_Ehdr const *ehdr, unsigned int idx)
 {
-	Elf32_Ehdr const *ehdr = file->f_data;
 	Elf32_Shdr const *shdr;
 	char const *strtab;
 
@@ -26,9 +26,9 @@ static char const *elf_section_name(file_t const *file, unsigned int idx)
 	return (idx < shdr->sh_size ? strtab + idx : NULL);
 }
 
-static elf_section_t *elf_section_read(file_t const *file, size_t *sectnum_ptr)
+static elf_section_t *elf_section_read(file_t const *file,
+	Elf32_Ehdr const *ehdr, size_t *sectnum_ptr)
 {
-	Elf32_Ehdr const *ehdr = file->f_data;
 	Elf32_Shdr const *shtab = file->f_data + ehdr->e_shoff;
 	elf_section_t *res = malloc(ehdr->e_shnum * sizeof(*res));
 
@@ -37,11 +37,12 @@ static elf_section_t *elf_section_read(file_t const *file, size_t *sectnum_ptr)
 		ehdr->e_shoff, ehdr->e_shnum * sizeof(*shtab)))
 		return (NULL);
 	for (size_t i = 0; i < ehdr->e_shnum; i++) {
-		res[i].s_name = elf_section_name(file, shtab[i].sh_name);
+		res[i].s_name = elf_section_name(file, ehdr, shtab[i].sh_name);
 		res[i].s_type = shtab[i].sh_type;
 		res[i].s_flags = shtab[i].sh_flags;
 		res[i].s_size = shtab[i].sh_size;
 		res[i].s_entsize = shtab[i].sh_entsize;
+		res[i].s_addr = shtab[i].sh_addr;
 		res[i].s_data = file->f_data + shtab[i].sh_offset;
 		if ((res[i].s_type != SHT_NOBITS && !elf_offset_check(file,
 			shtab[i].sh_offset, res[i].s_size)) || !res[i].s_name)
@@ -77,14 +78,15 @@ static elf_symbol_t *elf_symbol_read(elf_section_t const *symtab_s,
 
 elf_t *elf_file_open_32le(file_t const *file, elf_t *elf)
 {
+	Elf32_Ehdr const *ehdr = file->f_data;
 	elf_section_t const *symtab_s;
 	elf_section_t const *strtab_s;
 
 	if (!elf_offset_check(file, 0, sizeof(Elf32_Ehdr)))
 		return (NULL);
-	elf->e_entry = ((Elf32_Ehdr const *)file->f_data)->e_entry;
+	elf->e_entry = ehdr->e_entry;
 	elf->e_sectnum = 0;
-	elf->e_sections = elf_section_read(file, &elf->e_sectnum);
+	elf->e_sections = elf_section_read(file, ehdr, &elf->e_sectnum);
 	if (!elf->e_sections)
 		return (NULL);
 	symtab_s = elf_section_find(elf, ".symtab", SHT_SYMTAB);
