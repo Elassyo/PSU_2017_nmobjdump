@@ -14,6 +14,9 @@
 	#include "my_ar.h"
 	#include "my_elf.h"
 
+	#define MY_MIN(a, b) ((a) < (b) ? (a) : (b))
+	#define MY_MAX(a, b) ((a) > (b) ? (a) : (b))
+
 typedef struct objdump_options {
 	bool file_header;
 	bool full_content;

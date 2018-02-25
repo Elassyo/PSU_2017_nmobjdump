@@ -8,7 +8,18 @@
 #include <ctype.h>
 #include <stdio.h>
 #include <string.h>
-#include "my_elf.h"
+#include "my_objdump.h"
+
+static int count_hex_digits(unsigned long nbr)
+{
+	int res = 1;
+
+	while (nbr > 16) {
+		nbr /= 16;
+		res++;
+	}
+	return (res);
+}
 
 static void my_objdump_full_content_line(unsigned char const *data, int len,
 	unsigned long addr, int addr_len)
@@ -34,6 +45,7 @@ static void my_objdump_full_content_line(unsigned char const *data, int len,
 
 void my_objdump_full_content(elf_t const *elf)
 {
+	int addr_len;
 	elf_section_t const *sect;
 
 	puts("");
@@ -46,11 +58,13 @@ void my_objdump_full_content(elf_t const *elf)
 			strcmp(sect->s_name, ".shstrtab") == 0)
 			continue;
 		printf("Contents of section %s:\n", sect->s_name);
+		addr_len = MY_MAX(count_hex_digits(sect->s_addr +
+			sect->s_size + 1), 4);
 		for (unsigned long off = 0; off < sect->s_size; off += 16) {
 			my_objdump_full_content_line(sect->s_data + off,
 				sect->s_size - off > 16 ?
 					16 : sect->s_size - off,
-				sect->s_addr + off, 4);
+				sect->s_addr + off, addr_len);
 		}
 	}
 }
