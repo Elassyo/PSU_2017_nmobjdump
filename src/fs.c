@@ -16,14 +16,14 @@
 #include <unistd.h>
 #include "my_fs.h"
 
-file_t *fs_open(char const *filepath)
+file_t *fs_open(char const *path)
 {
 	struct stat s;
 	file_t *res = malloc(sizeof(*res));
 
 	assert(res != NULL);
-	res->f_path = strdup(filepath);
-	res->f_fd = open(filepath, O_RDONLY);
+	res->f_path = strdup(path);
+	res->f_fd = open(path, O_RDONLY);
 	if (res->f_fd == -1 || fstat(res->f_fd, &s))
 		return (NULL);
 	if (!S_ISREG(s.st_mode)) {

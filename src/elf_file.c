@@ -15,7 +15,7 @@ bool elf_file_check(file_t const *file)
 	bool ok = true;
 	Elf32_Ehdr const *ehdr = file->f_data;
 
-	if (!elf_offset_check(file, 0, sizeof(Elf32_Ehdr)))
+	if (!fs_check(file, 0, sizeof(Elf32_Ehdr)))
 		return (0);
 	ok = memcmp(ehdr->e_ident, ELFMAG, SELFMAG) == 0;
 	ok = ok && (ehdr->e_ident[EI_CLASS] == ELFCLASS32 ||

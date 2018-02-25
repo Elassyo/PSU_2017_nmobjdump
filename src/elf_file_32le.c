@@ -20,35 +20,35 @@ static char const *elf_section_name(file_t const *file,
 		return (NULL);
 	shdr = &((Elf32_Shdr const *)(file->f_data + ehdr->e_shoff))
 	[ehdr->e_shstrndx];
-	if (!elf_offset_check(file, shdr->sh_offset, shdr->sh_size))
+	if (!fs_check(file, shdr->sh_offset, shdr->sh_size))
 		return (NULL);
 	strtab = file->f_data + shdr->sh_offset;
 	return (idx < shdr->sh_size ? strtab + idx : NULL);
 }
 
-static elf_section_t *elf_section_read(file_t const *file,
-	Elf32_Ehdr const *ehdr, size_t *sectnum_ptr)
+static elf_section_t *elf_section_read(file_t const *f,
+	Elf32_Ehdr const *e, size_t *sectnum_ptr)
 {
-	Elf32_Shdr const *shtab = file->f_data + ehdr->e_shoff;
-	elf_section_t *res = malloc(ehdr->e_shnum * sizeof(*res));
+	Elf32_Shdr const *shtab = f->f_data + e->e_shoff;
+	elf_section_t *res = malloc(e->e_shnum * sizeof(*res));
 
 	assert(res != NULL);
-	if (ehdr->e_shentsize != sizeof(*shtab) || !elf_offset_check(file,
-		ehdr->e_shoff, ehdr->e_shnum * sizeof(*shtab)))
+	if (!fs_check(f, e->e_shoff, e->e_shnum * sizeof(*shtab)))
 		return (NULL);
-	for (size_t i = 0; i < ehdr->e_shnum; i++) {
-		res[i].s_name = elf_section_name(file, ehdr, shtab[i].sh_name);
+	for (size_t i = 0; i < e->e_shnum; i++) {
+		res[i].s_name = elf_section_name(f, e, shtab[i].sh_name);
 		res[i].s_type = shtab[i].sh_type;
 		res[i].s_flags = shtab[i].sh_flags;
 		res[i].s_size = shtab[i].sh_size;
 		res[i].s_entsize = shtab[i].sh_entsize;
 		res[i].s_addr = shtab[i].sh_addr;
-		res[i].s_data = file->f_data + shtab[i].sh_offset;
-		if ((res[i].s_type != SHT_NOBITS && !elf_offset_check(file,
-			shtab[i].sh_offset, res[i].s_size)) || !res[i].s_name)
+		res[i].s_offset = shtab[i].sh_offset;
+		res[i].s_data = f->f_data + res[i].s_offset;
+		if (!res[i].s_name || (res[i].s_type != SHT_NOBITS &&
+			!fs_check(f, res[i].s_offset, res[i].s_size)))
 			return (NULL);
 	}
-	*sectnum_ptr = ehdr->e_shnum;
+	*sectnum_ptr = e->e_shnum;
 	return (res);
 }
 
@@ -82,20 +82,21 @@ elf_t *elf_file_open_32le(file_t const *file, elf_t *elf)
 	elf_section_t const *symtab_s;
 	elf_section_t const *strtab_s;
 
-	if (!elf_offset_check(file, 0, sizeof(Elf32_Ehdr)))
+	if (!fs_check(file, 0, sizeof(Elf32_Ehdr)))
 		return (NULL);
+	elf->e_type = ehdr->e_type;
 	elf->e_entry = ehdr->e_entry;
 	elf->e_sectnum = 0;
 	elf->e_sections = elf_section_read(file, ehdr, &elf->e_sectnum);
 	if (!elf->e_sections)
 		return (NULL);
+	elf->e_pagenum = ehdr->e_phnum;
 	symtab_s = elf_section_find(elf, ".symtab", SHT_SYMTAB);
 	strtab_s = elf_section_find(elf, ".strtab", SHT_STRTAB);
+	elf->e_symbols = NULL;
 	elf->e_symnum = 0;
 	if (symtab_s && strtab_s)
 		elf->e_symbols = elf_symbol_read(symtab_s, strtab_s,
 			&elf->e_symnum);
-	else
-		elf->e_symbols = NULL;
 	return (elf);
 }

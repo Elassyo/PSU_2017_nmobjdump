@@ -59,7 +59,6 @@ void my_objdump_full_content(elf_t const *elf)
 	int addr_len;
 	elf_section_t const *sect;
 
-	puts("");
 	for (unsigned long i = 1; i < elf->e_sectnum; i++) {
 		sect = &elf->e_sections[i];
 		if (sect->s_size == 0 || is_ignored_section(sect))

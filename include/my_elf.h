@@ -9,7 +9,6 @@
 	#define MY_ELF_H_
 
 	#include <elf.h>
-	#include <errno.h>
 	#include <stdbool.h>
 	#include <stddef.h>
 	#include "my_fs.h"
@@ -25,6 +24,7 @@ typedef struct elf_section {
 	size_t s_size;
 	size_t s_entsize;
 	unsigned long s_addr;
+	unsigned long s_offset;
 	void const *s_data;
 } elf_section_t;
 
@@ -40,10 +40,12 @@ typedef struct elf {
 	unsigned char e_class;
 	unsigned char e_byteorder;
 	unsigned short e_machine;
+	unsigned short e_type;
 	int e_addrsz;
 	unsigned long e_entry;
 	elf_section_t const *e_sections;
 	size_t e_sectnum;
+	size_t e_pagenum;
 	elf_symbol_t const *e_symbols;
 	size_t e_symnum;
 } elf_t;
@@ -64,16 +66,5 @@ elf_section_t const *elf_section_find(elf_t const *elf,
 	char const *name, unsigned int type);
 
 int elf_symbol_cmp(void const *a, void const *b);
-
-inline __attribute__ ((always_inline)) bool elf_offset_check(
-	file_t const *file, size_t offset, size_t size)
-{
-	bool res = offset <= file->f_size && size <= file->f_size - offset;
-
-	if (!res) {
-		errno = EIO;
-	}
-	return (res);
-}
 
 #endif /* !defined (MY_ELF_H_) */

@@ -41,6 +41,7 @@ static int my_objdump_elf(file_t const *file, objdump_options_t const *opt)
 		elf_info_format(elf), elf_info_machine(elf));
 	if (opt->file_header)
 		my_objdump_file_header(elf);
+	putchar('\n');
 	if (opt->full_content)
 		my_objdump_full_content(elf);
 	return (0);

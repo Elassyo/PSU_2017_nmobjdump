@@ -21,7 +21,7 @@ static char const *elf_section_name(file_t const *file,
 		return (NULL);
 	s = &((Elf32_Shdr const *)(file->f_data + BS32(e->e_shoff)))
 	[BS16(e->e_shstrndx)];
-	if (!elf_offset_check(file, BS32(s->sh_offset), BS32(s->sh_size)))
+	if (!fs_check(file, BS32(s->sh_offset), BS32(s->sh_size)))
 		return (NULL);
 	t = file->f_data + BS32(s->sh_offset);
 	return (idx < BS32(s->sh_size) ? t + idx : NULL);
@@ -34,8 +34,7 @@ static elf_section_t *elf_section_read(file_t const *f,
 	elf_section_t *res = malloc(BS16(e->e_shnum) * sizeof(*res));
 
 	assert(res != NULL);
-	if (BS16(e->e_shentsize) != sizeof(*s) || !elf_offset_check(f,
-		BS32(e->e_shoff), BS16(e->e_shnum) * sizeof(*s)))
+	if (!fs_check(f, BS32(e->e_shoff), BS16(e->e_shnum) * sizeof(*s)))
 		return (NULL);
 	for (size_t i = 0; i < BS16(e->e_shnum); i++) {
 		res[i].s_name = elf_section_name(f, e, BS32(s[i].sh_name));
@@ -43,10 +42,11 @@ static elf_section_t *elf_section_read(file_t const *f,
 		res[i].s_flags = BS32(s[i].sh_flags);
 		res[i].s_size = BS32(s[i].sh_size);
 		res[i].s_entsize = BS32(s[i].sh_entsize);
+		res[i].s_offset = BS32(s[i].sh_offset);
 		res[i].s_addr = BS32(s[i].sh_addr);
-		res[i].s_data = f->f_data + BS32(s[i].sh_offset);
-		if ((res[i].s_type != SHT_NOBITS && !elf_offset_check(f,
-			BS32(s[i].sh_offset), res[i].s_size)) || !res[i].s_name)
+		res[i].s_data = f->f_data + res[i].s_offset;
+		if (!res[i].s_name || (res[i].s_type != SHT_NOBITS &&
+			!fs_check(f, res[i].s_offset, res[i].s_size)))
 			return (NULL);
 	}
 	*sectnum_ptr = BS16(e->e_shnum);
@@ -83,20 +83,21 @@ elf_t *elf_file_open_32be(file_t const *file, elf_t *elf)
 	elf_section_t const *symtab_s;
 	elf_section_t const *strtab_s;
 
-	if (!elf_offset_check(file, 0, sizeof(Elf32_Ehdr)))
+	if (!fs_check(file, 0, sizeof(Elf32_Ehdr)))
 		return (NULL);
+	elf->e_type = BS16(ehdr->e_type);
 	elf->e_entry = BS32(ehdr->e_entry);
 	elf->e_sectnum = 0;
 	elf->e_sections = elf_section_read(file, ehdr, &elf->e_sectnum);
 	if (!elf->e_sections)
 		return (NULL);
+	elf->e_pagenum = BS16(ehdr->e_phnum);
 	symtab_s = elf_section_find(elf, ".symtab", SHT_SYMTAB);
 	strtab_s = elf_section_find(elf, ".strtab", SHT_STRTAB);
+	elf->e_symbols = NULL;
 	elf->e_symnum = 0;
 	if (symtab_s && strtab_s)
 		elf->e_symbols = elf_symbol_read(symtab_s, strtab_s,
 			&elf->e_symnum);
-	else
-		elf->e_symbols = NULL;
 	return (elf);
 }
