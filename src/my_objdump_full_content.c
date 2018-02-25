@@ -5,9 +5,9 @@
 ** my_objdump -s mode implementation
 */
 
-#include "nmobjdump.h"
+#include "my_elf.h"
 
-void my_objdump_full_content(Elf64_Ehdr const *elf)
+void my_objdump_full_content(elf_t const *elf)
 {
 	(void)elf;
 }

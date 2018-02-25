@@ -5,54 +5,54 @@
 ** my_nm implementation
 */
 
+#include <assert.h>
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include "nmobjdump.h"
+#include <string.h>
+#include "my_nm.h"
 
-static void my_nm_print_symtab(Elf64_Ehdr const *elf,
-	Elf64_Sym const *symtab, uint64_t len)
+static void my_nm_print_symtab(elf_t const *elf)
 {
-	char buf[17];
+	elf_symbol_t *symbols = malloc(elf->e_symnum * sizeof(*symbols));
+	char buf[20];
 	char type;
-	elf_symbols_t *symbols = elf_symbols_read_symtab(elf, symtab, len);
 
-	qsort(symbols, len, sizeof(*symbols), elf_symbols_sorter);
-	for (uint64_t i = 0; i < len; i++) {
-		type = elf_symbols_get_type(elf, symbols[i].sym);
+	assert(symbols != NULL);
+	memcpy(symbols, elf->e_symbols, elf->e_symnum * sizeof(*symbols));
+	qsort(symbols, elf->e_symnum, sizeof(*elf->e_symbols),
+		elf_symbol_cmp);
+	for (uint64_t i = 0; i < elf->e_symnum; i++) {
+		type = my_nm_symbol_type(elf, &symbols[i]);
 		if (type != 'U' && type != 'w')
-			snprintf(buf, 17, "%016lx", symbols[i].sym->st_value);
+			snprintf(buf, 20, "%0*lx", elf->e_addrsz / 4,
+				symbols[i].sym_value);
 		else
 			buf[0] = 0;
 		if (type == 0)
 			continue;
-		printf("%16s %c %s\n", buf, type, symbols[i].name);
+		printf("%*s %c %s\n", elf->e_addrsz / 4, buf, type,
+			symbols[i].sym_name);
 	}
 	free(symbols);
 }
 
 static int my_nm_elf(file_t const *file)
 {
-	Elf64_Ehdr const *elf = file->f_data;
-	Elf64_Shdr const *symtab_shdr;
+	elf_t *elf;
 
-	if (elf->e_ident[EI_CLASS] != ELFCLASS64 ||
-		elf->e_ident[EI_DATA] != ELFDATA2LSB) {
-		fprintf(stderr, "my_nm: %s: Unsupported ELF\n", file->f_path);
+	elf = elf_file_open(file);
+	if (!elf) {
+		fprintf(stderr, "my_nm: %s: %s\n", file->f_path, errno == EIO ?
+			"File truncated" : "Invalid file"
+		);
 		return (84);
 	}
-	if (elf->e_shoff == 0 || elf->e_shoff > file->f_size ||
-		elf->e_shnum == 0) {
-		fprintf(stderr, "my_nm: %s: no sections\n", file->f_path);
-		return (84);
-	}
-	symtab_shdr = elf_section_find(elf, ".symtab");
-	if (symtab_shdr && symtab_shdr->sh_offset < file->f_size &&
-		symtab_shdr->sh_size != 0 && symtab_shdr->sh_entsize != 0)
-		my_nm_print_symtab(elf, (void *)elf + symtab_shdr->sh_offset,
-			symtab_shdr->sh_size / symtab_shdr->sh_entsize);
-	else
+	if (!elf->e_symbols)
 		fprintf(stderr, "my_nm: %s: no symbols\n", file->f_path);
+	else
+		my_nm_print_symtab(elf);
+	elf_file_close(elf);
 	return (0);
 }
 
@@ -83,10 +83,12 @@ static int my_nm_file(file_t const *file, bool print_path)
 static int my_nm(char const *path, bool print_path)
 {
 	int ret;
-	file_t *file = fs_open("my_nm", path);
+	file_t *file = fs_open(path);
 
-	if (!file)
+	if (!file) {
+		fprintf(stderr, "my_nm: '%s': %m\n", path);
 		return (84);
+	}
 	ret = my_nm_file(file, print_path);
 	fs_close(file);
 	return (ret);

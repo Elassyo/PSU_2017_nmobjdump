@@ -2,10 +2,10 @@
 ** EPITECH PROJECT, 2018
 ** PSU_2017_nmobjdump
 ** File description:
-** $END
+** Archive file miscellaneous functions
 */
 
-#include "nmobjdump.h"
+#include "my_ar.h"
 
 int ar_atoi(char const *str, int len)
 {

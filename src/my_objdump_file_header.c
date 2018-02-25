@@ -5,9 +5,12 @@
 ** my_objdump -f mode implementation
 */
 
-#include "nmobjdump.h"
+#include <stdio.h>
+#include "my_objdump.h"
 
-void my_objdump_file_header(Elf64_Ehdr const *elf)
+void my_objdump_file_header(elf_t const *elf)
 {
-	(void)elf;
+	printf("architecture: %s, ", elf_info_architecture(elf));
+	printf("flags 0x%08x:\n\n", 0);
+	printf("start address 0x%0*lx\n\n", elf->e_addrsz / 4, elf->e_entry);
 }

@@ -5,9 +5,10 @@
 ** Archive file GNU filename extensions handling
 */
 
+#include <assert.h>
 #include <stdlib.h>
 #include <string.h>
-#include "nmobjdump.h"
+#include "my_ar.h"
 
 static char const *ar_ext_get_name_extensions_file(file_t const *file)
 {
@@ -37,9 +38,8 @@ char const *ar_ext_get_name(file_t const *file, char const *identifier)
 	}
 	end = strchr(identifier, '/');
 	res = malloc(end - identifier + 1);
-	if (res) {
-		strncpy(res, identifier, end - identifier);
-		res[end - identifier] = 0;
-	}
+	assert(res != NULL);
+	strncpy(res, identifier, end - identifier);
+	res[end - identifier] = 0;
 	return (res);
 }

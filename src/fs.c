@@ -5,6 +5,8 @@
 ** File system helpers
 */
 
+#include <assert.h>
+#include <errno.h>
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -12,25 +14,20 @@
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <unistd.h>
-#include "nmobjdump.h"
+#include "my_fs.h"
 
-file_t *fs_open(char const *progname, char const *filepath)
+file_t *fs_open(char const *filepath)
 {
 	struct stat s;
 	file_t *res = malloc(sizeof(*res));
 
-	if (!res) {
-		fprintf(stderr, "%s: %m\n", progname);
-		return (NULL);
-	}
+	assert(res != NULL);
 	res->f_path = strdup(filepath);
 	res->f_fd = open(filepath, O_RDONLY);
-	if (res->f_fd == -1 || fstat(res->f_fd, &s)) {
-		fprintf(stderr, "%s: '%s': %m\n", progname, filepath);
+	if (res->f_fd == -1 || fstat(res->f_fd, &s))
 		return (NULL);
-	}
 	if (!S_ISREG(s.st_mode)) {
-		fprintf(stderr, "%s: '%s': Not a file\n", progname, filepath);
+		errno = EISDIR;
 		return (NULL);
 	}
 	res->f_size = (size_t)s.st_size;

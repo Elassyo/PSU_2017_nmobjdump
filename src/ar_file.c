@@ -2,24 +2,24 @@
 ** EPITECH PROJECT, 2018
 ** PSU_2017_nmobjdump
 ** File description:
-** Archived files handling
+** Archive files handling
 */
 
+#include <assert.h>
 #include <stdlib.h>
 #include <string.h>
-#include "nmobjdump.h"
+#include "my_ar.h"
 
 static ar_file_t *ar_file_open(file_t const *file, size_t off)
 {
 	ar_fhdr_t const *fhdr = file->f_data + off;
 	ar_file_t *res = malloc(sizeof(*res));
 
-	if (res) {
-		res->af_off = off;
-		res->af_file.f_path = ar_ext_get_name(file, fhdr->fh_ident);
-		res->af_file.f_size = (size_t)ar_atoi(fhdr->fh_size, 10);
-		res->af_file.f_data = fhdr + 1;
-	}
+	assert(res != NULL);
+	res->af_off = off;
+	res->af_file.f_path = ar_ext_get_name(file, fhdr->fh_ident);
+	res->af_file.f_size = (size_t)ar_atoi(fhdr->fh_size, 10);
+	res->af_file.f_data = fhdr + 1;
 	return (res);
 }
 

@@ -6,7 +6,7 @@
 */
 
 #include <stdio.h>
-#include "nmobjdump.h"
+#include "my_objdump.h"
 
 static int my_objdump_parse_args(int argc, char const *const *argv,
 	objdump_options_t *opt)
@@ -29,8 +29,16 @@ static int my_objdump_parse_args(int argc, char const *const *argv,
 
 static int my_objdump_elf(file_t const *file, objdump_options_t const *opt)
 {
-	Elf64_Ehdr const *elf = file->f_data;
+	elf_t *elf;
 
+	elf = elf_file_open(file);
+	if (!elf) {
+		fprintf(stderr, "my_objdump: %s: %s\n", file->f_path,
+			errno == EIO ? "File truncated" : "Invalid file");
+		return (84);
+	}
+	printf("\n%s:     file format %s-%s\n", file->f_path,
+		elf_info_format(elf), elf_info_machine(elf));
 	if (opt->file_header)
 		my_objdump_file_header(elf);
 	if (opt->full_content)
@@ -44,9 +52,6 @@ static int my_objdump_file(file_t const *file, objdump_options_t const *opt)
 	ar_file_t *ar_file;
 
 	if (elf_file_check(file)) {
-		printf("\n%s:     file format %s-%s\n", file->f_path,
-			elf_file_format(file->f_data),
-			elf_file_target(file->f_data));
 		ret = my_objdump_elf(file, opt);
 	} else if (ar_file_check(file)) {
 		printf("In archive %s:\n", file->f_path);
@@ -65,11 +70,12 @@ static int my_objdump_file(file_t const *file, objdump_options_t const *opt)
 static int my_objdump(char const *path, objdump_options_t const *opt)
 {
 	int ret;
-	file_t *file;
+	file_t *file = fs_open(path);
 
-	file = fs_open("my_objdump", path);
-	if (!file)
+	if (!file) {
+		fprintf(stderr, "my_objdump: '%s': %m\n", path);
 		return (84);
+	}
 	ret = my_objdump_file(file, opt);
 	fs_close(file);
 	return (ret);

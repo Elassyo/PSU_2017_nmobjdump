@@ -16,7 +16,8 @@ NAME_OBJDUMP	=	my_objdump
 # SOURCES
 #
 
-MAINSRC_NM	=	my_nm.c
+MAINSRC_NM	=	my_nm.c						\
+			my_nm_symbol_type.c
 MAINSRC_OBJDUMP	=	my_objdump.c					\
 			my_objdump_file_header.c			\
 			my_objdump_full_content.c
@@ -26,15 +27,23 @@ SRC		=	fs.c						\
 			ar_ext.c					\
 			ar_utils.c					\
 			elf_file.c					\
+			elf_file_32le.c					\
+			elf_file_32be.c					\
+			elf_file_64le.c					\
+			elf_file_64be.c					\
+			elf_info.c					\
 			elf_section.c					\
-			elf_strings.c					\
-			elf_symbols.c
+			elf_symbol.c
 
 #
 # HEADERS
 #
 
-INC		=	nmobjdump.h
+INC		=	my_nm.h						\
+			my_objdump.h					\
+			my_fs.h						\
+			my_elf.h					\
+			my_ar.h
 
 #
 # SYSTEM AND USER LIBS

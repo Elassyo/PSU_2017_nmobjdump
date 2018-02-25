@@ -5,60 +5,56 @@
 ** ELF files handling
 */
 
-#include <elf.h>
-#include "nmobjdump.h"
+#include <assert.h>
+#include <stdlib.h>
+#include <string.h>
+#include "my_elf.h"
 
 bool elf_file_check(file_t const *file)
 {
 	bool ok = true;
-	Elf64_Ehdr const *ehdr = file->f_data;
+	Elf32_Ehdr const *ehdr = file->f_data;
 
-	if (file->f_size < sizeof(Elf64_Ehdr))
+	if (!elf_offset_check(file, 0, sizeof(Elf32_Ehdr)))
 		return (0);
-	ok = ok && ehdr->e_ident[EI_MAG0] == ELFMAG0;
-	ok = ok && ehdr->e_ident[EI_MAG1] == ELFMAG1;
-	ok = ok && ehdr->e_ident[EI_MAG2] == ELFMAG2;
-	ok = ok && ehdr->e_ident[EI_MAG3] == ELFMAG3;
+	ok = memcmp(ehdr->e_ident, ELFMAG, SELFMAG) == 0;
 	ok = ok && (ehdr->e_ident[EI_CLASS] == ELFCLASS32 ||
 		ehdr->e_ident[EI_CLASS] == ELFCLASS64);
 	ok = ok && (ehdr->e_ident[EI_DATA] == ELFDATA2LSB ||
 		ehdr->e_ident[EI_DATA] == ELFDATA2MSB);
+	ok = ok && ehdr->e_ident[EI_VERSION] == EV_CURRENT;
 	return (ok);
 }
 
-char const *elf_file_format(Elf64_Ehdr const *elf)
+elf_t *elf_file_open(file_t const *file)
 {
-	switch (elf->e_ident[EI_CLASS]) {
-	case ELFCLASS32:
-		return ("elf32");
-	case ELFCLASS64:
-		return ("elf64");
-	default:
-		return ("invalid");
+	Elf32_Ehdr const *ehdr = file->f_data;
+	elf_t *elf = malloc(sizeof(*elf));
+
+	assert(elf != NULL);
+	elf->e_class = ehdr->e_ident[EI_CLASS];
+	elf->e_byteorder = ehdr->e_ident[EI_DATA];
+	elf->e_machine = ehdr->e_machine;
+	if (elf->e_class == ELFCLASS32) {
+		elf->e_addrsz = sizeof(Elf32_Addr) * 8;
+		if (elf->e_byteorder == ELFDATA2LSB)
+			return (elf_file_open_32le(file, elf));
+		else
+			return (elf_file_open_32be(file, elf));
+	} else {
+		elf->e_addrsz = sizeof(Elf64_Addr) * 8;
+		if (elf->e_byteorder == ELFDATA2LSB)
+			return (elf_file_open_64le(file, elf));
+		else
+			return (elf_file_open_64be(file, elf));
 	}
 }
 
-char const *elf_file_target(Elf64_Ehdr const *elf)
+void elf_file_close(elf_t *elf)
 {
-	switch (elf->e_machine) {
-	case EM_386:
-		return ("i386");
-	case EM_X86_64:
-		return ("x86-64");
-	default:
-		return (elf->e_ident[EI_DATA] == ELFDATA2LSB ?
-			"little" : "big");
+	if (elf) {
+		free((void *)elf->e_sections);
+		free((void *)elf->e_symbols);
 	}
-}
-
-char const *elf_file_architecture(Elf64_Ehdr const *elf)
-{
-	switch (elf->e_machine) {
-	case EM_386:
-		return ("i386");
-	case EM_X86_64:
-		return ("i386:x86-64");
-	default:
-		return ("UNKNOWN!");
-	}
+	free(elf);
 }

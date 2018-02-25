@@ -2,31 +2,22 @@
 ** EPITECH PROJECT, 2018
 ** PSU_2017_nmobjdump
 ** File description:
-** ELF section handling
+** ELF sections handling
 */
 
 #include <string.h>
-#include "nmobjdump.h"
+#include "my_elf.h"
 
-Elf64_Shdr const *elf_section_find(Elf64_Ehdr const *elf, char const *name)
+elf_section_t const *elf_section_find(elf_t const *elf,
+	char const *name, unsigned int type)
 {
-	Elf64_Shdr *shdrtab = (void *)elf + elf->e_shoff;
+	elf_section_t const *type_match = NULL;
 
-	if (!elf_strtab_get(elf, true, 0))
-		return (NULL);
-	for (uint16_t i = 0; i < elf->e_shnum; i++) {
-		if (strcmp(elf_strtab_get(elf, true, shdrtab[i].sh_name),
-			name) == 0)
-			return (shdrtab + i);
+	for (size_t i = 0; i < elf->e_sectnum; i++) {
+		if (strcmp(elf->e_sections[i].s_name, name) == 0)
+			return (&elf->e_sections[i]);
+		if (elf->e_sections[i].s_type == type && !type_match)
+			type_match = &elf->e_sections[i];
 	}
-	return (NULL);
-}
-
-Elf64_Shdr const *elf_section_get(Elf64_Ehdr const *elf, Elf64_Section idx)
-{
-	Elf64_Shdr *shdrtab = (void *)elf + elf->e_shoff;
-
-	if (idx >= elf->e_shnum)
-		return (NULL);
-	return (shdrtab + idx);
+	return (type_match);
 }
