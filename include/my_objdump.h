@@ -26,11 +26,6 @@
 	#define WP_TEXT 0x80
 	#define D_PAGED 0x100
 
-typedef struct objdump_options {
-	bool file_header;
-	bool full_content;
-} objdump_options_t;
-
 typedef struct objdump_elf_flags {
 	unsigned int mask;
 	char const *str;
